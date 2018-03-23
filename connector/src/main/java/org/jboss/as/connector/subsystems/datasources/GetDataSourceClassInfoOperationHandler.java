@@ -79,9 +79,12 @@ public class GetDataSourceClassInfoOperationHandler implements OperationStepHand
                         context.getResult().set(new ModelNode());
                         return;
                     }
-                    ModelNode result = dsClsInfoNode(serviceModuleLoader, driver.getModuleName(), driver.getDataSourceClassName(),
-                            driver.getXaDataSourceClassName());
-                    context.getResult().set(result);
+                    try {
+                        ModelNode result = dsClsInfoNode(serviceModuleLoader, driver.getModuleName(), driver.getDataSourceClassName(), driver.getXaDataSourceClassName());
+                        context.getResult().set(result);
+                    } catch (Exception e) {
+                        context.getFailureDescription().set(e.getLocalizedMessage());
+                    }
                 }
 
             }, OperationContext.Stage.RUNTIME);
