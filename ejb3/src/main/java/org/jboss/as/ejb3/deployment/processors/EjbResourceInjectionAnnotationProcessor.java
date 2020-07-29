@@ -32,6 +32,8 @@ import org.jboss.as.ee.component.InjectionTarget;
 import org.jboss.as.ee.component.LookupInjectionSource;
 import org.jboss.as.ee.component.MethodInjectionTarget;
 import org.jboss.as.ee.component.ResourceInjectionConfiguration;
+import org.jboss.as.ee.structure.DeploymentType;
+import org.jboss.as.ee.structure.DeploymentTypeMarker;
 import org.jboss.as.ee.structure.EJBAnnotationPropertyReplacement;
 import org.jboss.as.ejb3.logging.EjbLogger;
 import org.jboss.as.ejb3.deployment.EjbDeploymentAttachmentKeys;
@@ -51,6 +53,8 @@ import org.jboss.metadata.property.PropertyReplacer;
 
 import javax.ejb.EJB;
 import javax.ejb.EJBs;
+
+import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Locale;
 
@@ -173,6 +177,28 @@ public class EjbResourceInjectionAnnotationProcessor implements DeploymentUnitPr
         final ResourceInjectionConfiguration injectionConfiguration = targetDescription != null ?
                 new ResourceInjectionConfiguration(targetDescription, createLookup(localContextName, appclient)) : null;
 
+        // if there is no EJB interface implementation, set it invalid to avoid creating JNDI binding later in ModuleJndiBindingProcessor
+        final boolean compBinding = localContextName.startsWith("java:comp") || !localContextName.startsWith("java:");
+        final boolean isWar = DeploymentTypeMarker.isType(DeploymentType.WAR, deploymentUnit);
+        if (!compBinding || isWar) {
+            if (isEmpty(lookup) && isEmpty(beanName) && beanInterface != null) {
+                final CompositeIndex index = deploymentUnit.getAttachment(org.jboss.as.server.deployment.Attachments.COMPOSITE_ANNOTATION_INDEX);
+                ClassInfo cInfo = index.getClassByName(DotName.createSimple(beanInterface));
+                if (cInfo != null && Modifier.isInterface(cInfo.flags()) && index.getAllKnownImplementors(cInfo.name()).isEmpty()) {
+                    // if the interface implementors is empty, continue to check RemoteHome and LocalHome annotations.
+                    final CompositeIndex annotationIndex = deploymentUnit.getAttachment(org.jboss.as.server.deployment.Attachments.COMPOSITE_ANNOTATION_INDEX);
+                    List<AnnotationInstance> remoteHomeAnnotationInstances = annotationIndex.getAnnotations(DotName.createSimple("javax.ejb.RemoteHome"));
+                    List<AnnotationInstance> localHomeAnnotationInstances = annotationIndex.getAnnotations(DotName.createSimple("javax.ejb.LocalHome"));
+                    boolean ejbHomeInterfaceAnnotation = checkAnnotationInstances(beanInterface, remoteHomeAnnotationInstances) || checkAnnotationInstances(beanInterface, localHomeAnnotationInstances);
+                    if(!ejbHomeInterfaceAnnotation) {
+                        classDescription.setInvalidOnBidning(true);
+                        EjbLogger.DEPLOYMENT_LOGGER.ejbNotFoundForBinding(beanInterface, localContextName);
+                        System.err.println("In deployment : " + deploymentUnit.getName() + " set invalid on binding with : " + beanInterface + " for binding : " + localContextName + " lookup : " + lookup + " beanName : " + beanName);
+                    }
+                }
+            }
+        }
+
         // Create the binding from whence our injection comes.
         final BindingConfiguration bindingConfiguration = new BindingConfiguration(localContextName, valueSource);
 
@@ -180,6 +206,15 @@ public class EjbResourceInjectionAnnotationProcessor implements DeploymentUnitPr
         if (injectionConfiguration != null) {
             classDescription.addResourceInjection(injectionConfiguration);
         }
+    }
+
+    private boolean checkAnnotationInstances(final String beanInterface, List<AnnotationInstance> annotationInstances) {
+        for(AnnotationInstance ai : annotationInstances) {
+            if(ai.value().asString().equals(beanInterface)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private InjectionSource createLookup(final String localContextName, final boolean appclient) {

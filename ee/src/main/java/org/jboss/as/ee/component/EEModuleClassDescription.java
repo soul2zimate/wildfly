@@ -45,6 +45,7 @@ public final class EEModuleClassDescription {
 
     private final String className;
     private boolean invalid;
+    private boolean invalidOnBidning;
     private StringBuilder invalidMessageBuilder;
     private final Map<Class<? extends Annotation>, ClassAnnotationInformation<?,?>> annotationInformation = Collections.synchronizedMap(new HashMap<Class<? extends Annotation>, ClassAnnotationInformation<?, ?>>());
     private InterceptorClassDescription interceptorClassDescription = InterceptorClassDescription.EMPTY_INSTANCE;
@@ -119,6 +120,14 @@ public final class EEModuleClassDescription {
 
     public boolean isInvalid() {
         return invalid;
+    }
+
+    public boolean isInvalidOnBidning() {
+        return invalidOnBidning;
+    }
+
+    public void setInvalidOnBidning(boolean invalidOnBidning) {
+        this.invalidOnBidning = invalidOnBidning;
     }
 
     public String getInvalidMessage() {

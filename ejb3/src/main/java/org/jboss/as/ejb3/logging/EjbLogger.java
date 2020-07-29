@@ -3225,4 +3225,8 @@ public interface EjbLogger extends BasicLogger {
 
     @Message(id = 521, value = "Some classes referenced by annotation: %s in class: %s are missing.")
     DeploymentUnitProcessingException missingClassInAnnotation(String anCls, String resCls);
+
+    @LogMessage(level = WARN)
+    @Message(id = 522, value = "No EJB found with interface of type '%s' for binding %s")
+    void ejbNotFoundForBinding(String typeName, String binding);
 }

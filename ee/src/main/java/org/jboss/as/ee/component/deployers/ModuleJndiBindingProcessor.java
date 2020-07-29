@@ -169,7 +169,7 @@ public class ModuleJndiBindingProcessor implements DeploymentUnitProcessor {
                 if (handledClasses.contains(config.getClassName())) {
                     continue;
                 }
-                if(config.isInvalid()) {
+                if(config.isInvalid() || config.isInvalidOnBidning()) {
                     continue;
                 }
                 final Set<BindingConfiguration> classLevelBindings = new HashSet<>(config.getBindingConfigurations());

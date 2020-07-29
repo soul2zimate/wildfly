@@ -116,7 +116,7 @@ public class ResourceAnnotationsProcessingTestCase {
         tryDeployment(CLASSES_REFERENCING_INTERFACE_WITH_IMPL);
     }
 
-    @Test(expected = DeploymentException.class)
+    @Test
     public void testClassesReferencingInterfaceWithoutImpl() {
         tryDeployment(CLASSES_REFERENCING_INTERFACE_WITHOUT_IMPL);
     }
